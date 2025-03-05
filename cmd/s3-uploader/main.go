@@ -40,12 +40,17 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: args.LogLevel}))
 	slog.SetDefault(logger)
 
-	u := uploader.NewS3Uploader(args.S3Region, args.S3Bucket, uploader.S3Options{
+	u, err := uploader.NewS3Uploader(args.S3Region, args.S3Bucket, uploader.S3Options{
 		BaseEndpoint:    args.S3Endpoint,
 		AccessKeyID:     args.S3AccessKeyId,
 		SecretAccessKey: args.S3SecretAccessKey,
 		SessionToken:    args.S3SessionToken,
 	})
+
+	if err != nil {
+		slog.Error("failed to create S3 uploader", "err", err)
+		os.Exit(1)
+	}
 
 	w := watcher.NewPollingWatcher(os.DirFS(args.Directory), time.Duration(args.IntervalSeconds)*time.Second, args.UploadQueueSize)
 

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
@@ -24,28 +25,40 @@ type S3Options struct {
 	SessionToken    string
 }
 
-func NewS3Uploader(region string, bucket string, options S3Options) *S3Uploader {
-	opts := s3.Options{
-		AppID:        "s3-uploader/0.1.0",
-		Region:       region,
-		BaseEndpoint: options.BaseEndpoint,
+func NewS3Uploader(region string, bucket string, options S3Options) (*S3Uploader, error) {
+	var client *s3.Client
+
+	if options.BaseEndpoint != nil || options.AccessKeyID != nil || options.SecretAccessKey != nil {
+		opts := s3.Options{
+			AppID:        "s3-uploader/0.1.0",
+			Region:       region,
+			BaseEndpoint: options.BaseEndpoint,
+		}
+
+		if options.AccessKeyID != nil && options.SecretAccessKey != nil {
+			opts.Credentials = credentials.StaticCredentialsProvider{Value: aws.Credentials{
+				AccessKeyID:     *options.AccessKeyID,
+				SecretAccessKey: *options.SecretAccessKey,
+				SessionToken:    options.SessionToken,
+			}}
+		}
+
+		client = s3.New(opts)
+	} else {
+		cfg, err := awsconfig.LoadDefaultConfig(context.TODO(), awsconfig.WithRegion(region))
+		if err != nil {
+			return nil, err
+		}
+
+		client = s3.NewFromConfig(cfg)
 	}
 
-	if options.AccessKeyID != nil && options.SecretAccessKey != nil {
-		opts.Credentials = credentials.StaticCredentialsProvider{Value: aws.Credentials{
-			AccessKeyID:     *options.AccessKeyID,
-			SecretAccessKey: *options.SecretAccessKey,
-			SessionToken:    options.SessionToken,
-		}}
-	}
-
-	client := s3.New(opts)
-
-	return &S3Uploader{
+	t := &S3Uploader{
 		client:         client,
 		bucket:         bucket,
 		runningUploads: &sync.Map{},
 	}
+	return t, nil
 }
 
 func (t *S3Uploader) UploadFile(filePath string, key string) error {
