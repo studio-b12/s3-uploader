@@ -35,6 +35,8 @@ Options:
                          Maximum number of parallel uploads [default: 5, env: S3U_PARALLELUPLOADS]
   --upload-queue-size UPLOAD-QUEUE-SIZE
                          Size for upload queue; should larger as the expected amount of files that change per check cycle [default: 50, env: S3U_UPLOADQUEUESIZE]
+  --delete-after-upload
+                         Delete files on local disk after successful upload [env: S3U_DELETEAFTERUPLOAD]
   --s3-region S3-REGION
                          S3 region of the upload bucket [env: S3U_S3_REGION]
   --s3-bucket S3-BUCKET

@@ -23,6 +23,8 @@ type Args struct {
 	ParallelUploads int `arg:"--parallel-uploads,env:S3U_PARALLELUPLOADS" default:"5" help:"Maximum number of parallel uploads"`
 	UploadQueueSize int `arg:"--upload-queue-size,env:S3U_UPLOADQUEUESIZE" default:"50" help:"Size for upload queue; should larger as the expected amount of files that change per check cycle"`
 
+	DeleteAfterUpload bool `arg:"--delete-after-upload,env:S3U_DELETEAFTERUPLOAD" help:"Delete files on local disk after successful upload"`
+
 	S3Region          string  `arg:"--s3-region,env:S3U_S3_REGION,required" help:"S3 region of the upload bucket"`
 	S3Bucket          string  `arg:"--s3-bucket,env:S3U_S3_BUCKET,required" help:"S3 bucket to upload to"`
 	S3Endpoint        *string `arg:"--s3-endpoint,env:S3U_S3_ENDPOINT" help:"S3 endpoint URL"`
@@ -74,6 +76,14 @@ func main() {
 			}
 
 			slog.Info("upload finished", "path", fullPath, "key", key)
+
+			if args.DeleteAfterUpload {
+				err := os.Remove(fullPath)
+				if err != nil {
+					slog.Error("failed to delete file", "path", fullPath, "err", err)
+				}
+				slog.Info("deleted file", "path", fullPath, "key", key)
+			}
 		})
 	}
 }
